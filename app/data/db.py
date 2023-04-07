@@ -8,9 +8,11 @@ import atexit
 
 from app.config import DB_NAME, DATETIME_FORMAT
 from app.data.queries import (CREATE_USERS_TABLE,
-                                CREATE_BETS_TABLE,
-                                ADD_USER,
-                                FETCH_USER)
+                              CREATE_BETS_TABLE,
+                              ADD_USER,
+                              FETCH_USER,
+                              ADD_BET,
+                              FETCH_ACTIVE_BETS_BY_USER)
 from app.common.decorators import singleton
 
 CONN = sqlite3.connect(DB_NAME)
@@ -63,4 +65,23 @@ class SQLiteClient():
             logger.error(str(e))
             return None, e
         logger.debug(f"User {user_id} fetched: {res}")
+        return res, None
+    
+    def add_bet(self, data):
+        data["created_at"] = datetime.now().strftime(DATETIME_FORMAT)
+        try:
+            self.db.execute(ADD_BET, data)
+        except Exception as e:
+            logger.error(e)
+            return e
+        CONN.commit()
+        logger.debug(f"Bet created")
+    
+    def fetch_active_bets_by_user(self, user_id):
+        try:
+            res = self.db.execute(FETCH_ACTIVE_BETS_BY_USER, {"user_id": user_id}).fetchall()
+        except Exception as e:
+            logger.error(str(e))
+            return None, e
+        logger.debug(f"Active bets of {user_id} fetched: {res}")
         return res, None

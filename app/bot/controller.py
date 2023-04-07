@@ -4,11 +4,13 @@ from loguru import logger
 
 import app.bot.constants.commands as commands
 from app.bot.constants.strings import RESP_RULES
+from app.bot.game import Game
 import app.bot.service as service
 from app.config import TOKEN
 
 global bot
 bot = discord.Bot()
+game = Game()
 
 def launch_bot():
     logger.info("Bot is running!")
@@ -92,15 +94,29 @@ async def roulette(ctx: discord.ApplicationContext):
 async def determine_selection(ctx: discord.AutocompleteContext):
     color_or_number = ctx.options['color_or_number']
     if color_or_number == "color":
-        return ["red", "black", "green"]
+        return ["red", "black"]
     else:
         return [str(i) for i in range(0,37)]
 
 @bot.command()
 async def bet(
     ctx : discord.ApplicationContext,
-    color_or_number: discord.Option(str, choices=["color", "number"]),
-    selection : discord.Option(str, autocomplete=discord.utils.basic_autocomplete(determine_selection))
+    color_or_number: discord.Option(str, choices=["color", "number"], description="Choose whether you're betting on color or number"),
+    selection : discord.Option(str, autocomplete=discord.utils.basic_autocomplete(determine_selection), description="Select an appropriate color or number value to bet on"),
+    bet_amount: discord.Option(int, description="Input the amount of coins you're betting")
 ):
-    await ctx.respond(f"Your selection was: color_or_number: {color_or_number};  selection: {selection}")
+    service.add_bet(ctx.user, color_or_number, selection, bet_amount)
+    await ctx.respond(f"Bet accepted: {color_or_number}:{selection} for {bet_amount} coins")
+    # if no errors
+    if not game.is_pot_active:
+        game.is_pot_active += True
+    game.total_pot += bet_amount
 
+@bot.command()
+async def my_bets(ctx: discord.ApplicationContext):
+    bets = service.fetch_active_bets_by_user(ctx.user)
+    if len(bets) > 0:
+        await ctx.respond(f"@{ctx.user.display_name}, your bets are:\n"
+                        f"{bet[1]} coins on {bet[2] if bet[2] else bet[3]}\n" for bet in bets)
+    else:
+        await ctx.respond(f"@{ctx.user.display_name}, you have no active bets")
