@@ -14,7 +14,6 @@ def launch_bot():
     logger.info("Bot is running!")
     bot.run(TOKEN)
 
-
 class MenuView(discord.ui.View):
     @discord.ui.select(
         placeholder = "Choose an action",
@@ -81,8 +80,27 @@ class MenuView(discord.ui.View):
                 await interaction.response.send_message(
                     f"User '@{display_name}' has a balance of {coins} coins"
                 )
+        elif select.values[0] == commands.BET:
+            interaction.response.send_message("Try `/bet (color)` or `/bet (number)` in order to place a bet.")
 
 @bot.command()
-async def roulette(ctx):
+async def roulette(ctx: discord.ApplicationContext):
     await ctx.send("Welcome! What would you like to do?", view=MenuView())
     await ctx.respond("-----")
+
+
+async def determine_selection(ctx: discord.AutocompleteContext):
+    color_or_number = ctx.options['color_or_number']
+    if color_or_number == "color":
+        return ["red", "black", "green"]
+    else:
+        return [str(i) for i in range(0,37)]
+
+@bot.command()
+async def bet(
+    ctx : discord.ApplicationContext,
+    color_or_number: discord.Option(str, choices=["color", "number"]),
+    selection : discord.Option(str, autocomplete=discord.utils.basic_autocomplete(determine_selection))
+):
+    await ctx.respond(f"Your selection was: color_or_number: {color_or_number};  selection: {selection}")
+

@@ -40,7 +40,6 @@ class SQLiteClient():
         if "bets" not in existing_tables:
             logger.warning("Creating 'bets' table")
             self.db.execute(CREATE_BETS_TABLE)
-        logger.info(f"Tables created -> {self.get_all_tables()}")
 
     def get_all_tables(self):
         return self.db.execute("SELECT name FROM sqlite_master").fetchall()
