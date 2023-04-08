@@ -7,7 +7,7 @@ from app.bot.cogs.round_timer import RoundTimer
 import app.bot.constants.commands as cmd
 from app.bot.constants.strings import RESP_RULES
 import app.bot.service as service
-from app.common.exceptions import ErrorUserNotRegistered
+from app.common.exceptions import UserError
 from app.config import TOKEN
 
 global bot
@@ -44,46 +44,30 @@ class MenuView(discord.ui.View):
         user = interaction.user
         user_id = user.id
         if select.values[0] == cmd.REGISTER:
-            error = service.add_user(user)
-            if error and type(error).__name__ == "IntegrityError":
+            try:
+                service.add_user(user)
                 await interaction.response.send_message(
-                    f"User <@{user_id}> is already registered as a player.\n"
-                    "Try `/bet` command in order to place a bet."
-                )
-            elif error:
-                await interaction.response.send_message(
-                    f"{type(error).__name__} occured while trying to register '{user.display_name}'\n"
-                    "Please try again later or contact support"
-                )
-            else:
-                await interaction.response.send_message(
-                    "Welcome to the fold!\n"
-                    "You've been awarded 100 coins.\n"
-                    "Try `/bet` command in order to place a bet."
-                )
+                    f"Welcome to the fold, <@{user_id}>!\nYou've been awarded 100 coins.\n"
+                    "Try `/bet` command in order to place a bet.")
+            except UserError as ue:
+                logger.warning(ue)
+                await interaction.response.send_message(ue)
         elif select.values[0] == cmd.RULES:
             await interaction.response.send_message(RESP_RULES)
         elif select.values[0] == cmd.COINS:
-            coins, error = service.get_coins(user)
-            if error:
-                await interaction.response.send_message(
-                    f"{type(error).__name__} occured while trying to fetch balance of '{user.display_name}'\n"
-                    "Please try again later or contact support"
-                )
-            elif coins is None:
-                await interaction.response.send_message(
-                    f"User <@{user_id}> is not registered"
-                )
-            else:
+            try:
+                coins = service.get_coins(user)
                 await interaction.response.send_message(
                     f"User <@{user_id}> has a balance of {coins} coins"
                 )
+            except UserError as ue:
+                logger.warning(ue)
+                await interaction.response.send_message(ue)
 
 @bot.command()
 async def roulette(ctx: discord.ApplicationContext):
-    await ctx.send("Welcome! What would you like to do?", view=MenuView())
-    await ctx.respond("-----")
-
+    await ctx.respond("Welcome! What would you like to do?")
+    await ctx.send(view=MenuView())
 
 async def determine_bet_selection(ctx: discord.AutocompleteContext):
     color_or_number = ctx.options['color_or_number']
@@ -109,12 +93,11 @@ async def bet(
 ):
     try:
         service.add_bet(ctx.user, color_or_number, selection, bet_amount)
-    except ErrorUserNotRegistered as eunr:
-        logger.error(eunr)
-        await ctx.respond(eunr)
-        return
-    await ctx.respond(f"Bet accepted: {color_or_number}:{selection} for {bet_amount} coins")
-    RoundTimer(ctx)
+        await ctx.respond(f"Bet accepted: {color_or_number}:{selection} for {bet_amount} coins")
+        RoundTimer(ctx)
+    except UserError as ue:
+        logger.error(ue)
+        await ctx.respond(ue)
 
 @bot.command()
 async def my_bets(ctx: discord.ApplicationContext):

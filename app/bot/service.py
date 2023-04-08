@@ -2,35 +2,43 @@ from loguru import logger
 
 from collections import defaultdict
 
-from app.common.exceptions import ErrorInsufficientBalance, ErrorUserNotRegistered
+from app.common.exceptions import UserError
 from app.data.db import SQLiteClient
 
 db = SQLiteClient()
 
 
 def add_user(user):
-    # if user exists but just doesn't have money, add 100
-    return db.add_user(user.id)
+    user_id = user.id
+    user_data = db.fetch_user_by_id(user_id)
+    if not user_data:
+        return db.add_user(user.id)
+    # If a user is out of coins, restarting their game
+    if user_data[1] < 1:
+        db.update_user_coins(user_id, 100)
+    else:
+        raise UserError(f"<@{user.id}> is already registered!\n"
+                        "Try `/bet` command in order to place a bet.")
 
 def get_coins(user):
-    res, error = fetch_user_by_id(user)
-    if res and len(res) > 1:
-        return res[1], error
-    return res, error
-
-def fetch_user_by_id(user):
-    return db.fetch_user_by_id(user.id)
+    user_id = user.id
+    res = db.fetch_user_by_id(user_id)
+    if res is None:
+        raise UserError(f"User <@{user_id}> is not registered")
+    return res[1]
 
 def add_bet(user, color_or_number, selection, bet_amount):
-    user_coins, error = get_coins(user)
-    # if error:
-    #     return error
+    user_coins = get_coins(user)
     if user_coins is None:
-        raise ErrorUserNotRegistered("User must register before placing a bet")
+        raise UserError("User must register before placing a bet")
+    elif user_coins == 0:
+        raise UserError(f"<@{user.id}>, you've run out of coins!\n"
+                                 "You can register again to get a new batch of 100.")
     new_balance = user_coins - bet_amount
     if new_balance < 0:
-        raise ErrorInsufficientBalance(f"User {user.display_name} has only {user_coins} coins, trying to place a bet of {bet_amount}.\n"
-                                  "Adjust the amount and try again.")
+        raise UserError(f"User <@{user.id}> has only {user_coins} coins, while "
+                                       f"trying to place a bet of {bet_amount}.\n"
+                                       "Adjust the amount and try again.")
     data = {
         "user_id": user.id,
         "amount": bet_amount,
@@ -42,10 +50,13 @@ def add_bet(user, color_or_number, selection, bet_amount):
     return new_balance
 
 def fetch_active_bets_by_user(user):
-    return db.fetch_active_bets_by_user(user.id)[0]
+    bets = db.fetch_active_bets_by_user(user.id)
+    if bets is None:
+        raise UserError("User must register before placing a bet")
+    return bets
 
 def determine_winners(roll_result):
-    bets = db.fetch_active_bets_all()[0]
+    bets = db.fetch_active_bets_all()
 
     # Mapping bets by user_id
     bets_by_user = defaultdict(list)
@@ -55,7 +66,7 @@ def determine_winners(roll_result):
             "number": bet[2],
             "color": bet[3]
         })
-    users = db.fetch_users_by_id(list(bets_by_user.keys()))[0]
+    users = db.fetch_users_by_id(list(bets_by_user.keys()))
     # Preparing a dict which will hold user balances and winnings
     winnings = {}
     for user in users:
