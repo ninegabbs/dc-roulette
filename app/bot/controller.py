@@ -1,16 +1,16 @@
 import discord
+from discord.ext import tasks, commands
 
 from loguru import logger
 
-import app.bot.constants.commands as commands
+from app.bot.cogs.round_timer import RoundTimer
+import app.bot.constants.commands as cmd
 from app.bot.constants.strings import RESP_RULES
-from app.bot.game import Game
 import app.bot.service as service
 from app.config import TOKEN
 
 global bot
 bot = discord.Bot()
-game = Game()
 
 def launch_bot():
     logger.info("Bot is running!")
@@ -25,38 +25,33 @@ class MenuView(discord.ui.View):
             discord.SelectOption(
                 label="Register",
                 description=f"Gives you 100 coins and adds you to the player ranks",
-                value=commands.REGISTER
+                value=cmd.REGISTER
             ),
             discord.SelectOption(
                 label="Read rules",
                 description="Lists the game rules",
-                value=commands.RULES
+                value=cmd.RULES
             ),
             discord.SelectOption(
                 label="Check coin balance",
                 description="Displays your current coin balance",
-                value=commands.COINS
-            ),
-            discord.SelectOption(
-                label="Place a bet",
-                description="Brings up a dialog to place bets",
-                value=commands.BET
+                value=cmd.COINS
             )
         ]
     )
     async def select_callback(self, select, interaction : discord.interactions.Interaction):
         user = interaction.user
-        display_name = user.display_name
-        if select.values[0] == commands.REGISTER:
+        user_id = user.id
+        if select.values[0] == cmd.REGISTER:
             error = service.add_user(user)
             if error and type(error).__name__ == "IntegrityError":
                 await interaction.response.send_message(
-                    f"User '@{display_name}' is already registered as a player.\n"
+                    f"User <@{user_id}> is already registered as a player.\n"
                     "Try `/bet (color)` or `/bet (number)` in order to place a bet."   
                 )
             elif error:
                 await interaction.response.send_message(
-                    f"{type(error).__name__} occured while trying to register '{display_name}'\n"
+                    f"{type(error).__name__} occured while trying to register '{user.display_name}'\n"
                     "Please try again later or contact support"
                 )
             else:
@@ -65,25 +60,23 @@ class MenuView(discord.ui.View):
                     "You've been awarded 100 coins.\n"
                     "Try `/bet (color)` or `/bet (number)` in order to place a bet."
                 )
-        elif select.values[0] == commands.RULES:
+        elif select.values[0] == cmd.RULES:
             await interaction.response.send_message(RESP_RULES)
-        elif select.values[0] == commands.COINS:
-            coins, error = service.fetch_coins(user)
+        elif select.values[0] == cmd.COINS:
+            coins, error = service.get_coins(user)
             if error:
                 await interaction.response.send_message(
-                    f"{type(error).__name__} occured while trying to fetch balance of '{display_name}'\n"
+                    f"{type(error).__name__} occured while trying to fetch balance of '{user.display_name}'\n"
                     "Please try again later or contact support"
                 )
             elif coins is None:
                 await interaction.response.send_message(
-                    f"User '@{display_name}' is not registered"
+                    f"User <@{user_id}> is not registered"
                 )
             else:
                 await interaction.response.send_message(
-                    f"User '@{display_name}' has a balance of {coins} coins"
+                    f"User <@{user_id}> has a balance of {coins} coins"
                 )
-        elif select.values[0] == commands.BET:
-            interaction.response.send_message("Try `/bet (color)` or `/bet (number)` in order to place a bet.")
 
 @bot.command()
 async def roulette(ctx: discord.ApplicationContext):
@@ -107,16 +100,15 @@ async def bet(
 ):
     service.add_bet(ctx.user, color_or_number, selection, bet_amount)
     await ctx.respond(f"Bet accepted: {color_or_number}:{selection} for {bet_amount} coins")
-    # if no errors
-    if not game.is_pot_active:
-        game.is_pot_active += True
-    game.total_pot += bet_amount
+    RoundTimer(ctx)
 
-@bot.command()
+@bot.command(guild_ids=["1093221126504710305"])
 async def my_bets(ctx: discord.ApplicationContext):
     bets = service.fetch_active_bets_by_user(ctx.user)
     if len(bets) > 0:
-        await ctx.respond(f"@{ctx.user.display_name}, your bets are:\n"
-                        f"{bet[1]} coins on {bet[2] if bet[2] else bet[3]}\n" for bet in bets)
+        await ctx.respond(
+            f"<@{ctx.user.id}>, your bets are:\n" +
+            "\n".join([f"{bet[1]} coins on {bet[2] if bet[2] else bet[3]}" for bet in bets])
+        )
     else:
-        await ctx.respond(f"@{ctx.user.display_name}, you have no active bets")
+        await ctx.respond(f"@{ctx.user.id}, you have no active bets")

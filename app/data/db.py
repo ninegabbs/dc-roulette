@@ -12,7 +12,8 @@ from app.data.queries import (CREATE_USERS_TABLE,
                               ADD_USER,
                               FETCH_USER,
                               ADD_BET,
-                              FETCH_ACTIVE_BETS_BY_USER)
+                              FETCH_ACTIVE_BETS_BY_USER,
+                              UPDATE_USER_COINS)
 from app.common.decorators import singleton
 
 CONN = sqlite3.connect(DB_NAME)
@@ -85,3 +86,14 @@ class SQLiteClient():
             return None, e
         logger.debug(f"Active bets of {user_id} fetched: {res}")
         return res, None
+    
+    def update_user_coins(self, user_id, balance):
+        updated_at = datetime.now().strftime(DATETIME_FORMAT)
+        data = {"user_id": user_id, "balance": balance, "updated_at": updated_at}
+        try:
+            self.db.execute(UPDATE_USER_COINS, data)
+        except Exception as e:
+            logger.error(str(e))
+            return e
+        CONN.commit()
+        logger.debug(f"User coins updated")
