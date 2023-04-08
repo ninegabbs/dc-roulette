@@ -27,13 +27,25 @@ def get_coins(user):
         raise UserError(f"User <@{user_id}> is not registered")
     return res[1]
 
-def add_bet(user, color_or_number, selection, bet_amount):
+def add_bet(user, bet_value, bet_amount):
     user_coins = get_coins(user)
     if user_coins is None:
         raise UserError("User must register before placing a bet")
-    elif user_coins == 0:
+    
+    if bet_value.isnumeric():
+        bet_num = int(bet_value)
+        bet_clr = None
+    else:
+        bet_num = None
+        bet_clr = bet_value
+
+    if bet_num and bet_num not in range(0, 37):
+        raise UserError(f"<@{user.id}>, you can only bet on numbers between 0 and 36!")
+
+    if user_coins == 0:
         raise UserError(f"<@{user.id}>, you've run out of coins!\n"
                                  "You can register again to get a new batch of 100.")
+
     new_balance = user_coins - bet_amount
     if new_balance < 0:
         raise UserError(f"User <@{user.id}> has only {user_coins} coins, while "
@@ -42,8 +54,8 @@ def add_bet(user, color_or_number, selection, bet_amount):
     data = {
         "user_id": user.id,
         "amount": bet_amount,
-        "number": selection if color_or_number == "number" else None,
-        "color": selection if color_or_number == "color" else "",
+        "number": bet_num,
+        "color": bet_clr,
     }
     db.add_bet(data)
     db.update_user_coins(user.id, new_balance)

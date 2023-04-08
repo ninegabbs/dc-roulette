@@ -1,13 +1,10 @@
 from datetime import datetime
 from loguru import logger
-import sys
 
 import sqlite3
-from sqlite3 import IntegrityError
 import atexit
 
 from app.common.decorators import singleton
-from app.common.exceptions import UserError
 from app.config import DB_NAME, DATETIME_FORMAT
 from app.data.queries import (CREATE_USERS_TABLE,
                               CREATE_BETS_TABLE,
