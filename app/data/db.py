@@ -6,15 +6,18 @@ import sqlite3
 from sqlite3 import IntegrityError
 import atexit
 
+from app.common.decorators import singleton
 from app.config import DB_NAME, DATETIME_FORMAT
 from app.data.queries import (CREATE_USERS_TABLE,
                               CREATE_BETS_TABLE,
                               ADD_USER,
                               FETCH_USER,
+                              FETCH_USERS,
                               ADD_BET,
                               FETCH_ACTIVE_BETS_BY_USER,
-                              UPDATE_USER_COINS)
-from app.common.decorators import singleton
+                              UPDATE_USER_COINS,
+                              FETCH_ACTIVE_BETS_ALL,
+                              UPDATE_BETS_DEACTIVATE_ALL)
 
 CONN = sqlite3.connect(DB_NAME)
 
@@ -67,6 +70,16 @@ class SQLiteClient():
             return None, e
         logger.debug(f"User {user_id} fetched: {res}")
         return res, None
+
+    def fetch_users_by_id(self, user_ids):
+        prep_query = FETCH_USERS.format(", ".join("?" * len(user_ids)))
+        try:
+            res = self.db.execute(prep_query, user_ids).fetchall()
+        except Exception as e:
+            logger.error(str(e))
+            return None, e
+        logger.debug(f"Users fetched: {res}")
+        return res, None
     
     def add_bet(self, data):
         data["created_at"] = datetime.now().strftime(DATETIME_FORMAT)
@@ -97,3 +110,36 @@ class SQLiteClient():
             return e
         CONN.commit()
         logger.debug(f"User coins updated")
+
+    def update_user_coins_batch(self, data):
+        updated_at = datetime.now().strftime(DATETIME_FORMAT)
+        for d in data:
+            d["updated_at"] = updated_at
+        logger.debug(f"Updating user coins with data>>>{data}")
+        try:
+            self.db.executemany(UPDATE_USER_COINS, data)
+        except Exception as e:
+            logger.error(str(e))
+            return e
+        CONN.commit()
+        logger.debug(f"User coins batch updated")
+
+    def fetch_active_bets_all(self):
+        updated_at = datetime.now().strftime(DATETIME_FORMAT)
+        try:
+            res = self.db.execute(FETCH_ACTIVE_BETS_ALL, {"updated_at": updated_at}).fetchall()
+        except Exception as e:
+            logger.error(str(e))
+            return None, e
+        logger.debug(f"All active bets fetched>>>{res}")
+        return res, None
+
+    def update_bets_deactivate_all(self):
+        updated_at = datetime.now().strftime(DATETIME_FORMAT)
+        try:
+            self.db.execute(UPDATE_BETS_DEACTIVATE_ALL, {"updated_at": updated_at})
+        except Exception as e:
+            logger.error(str(e))
+            return e
+        CONN.commit()
+        logger.debug("All active bets were deactivated")

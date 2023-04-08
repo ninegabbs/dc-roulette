@@ -1,2 +1,5 @@
-class InsufficientBalance(Exception):
+class ErrorInsufficientBalance(Exception):
+    pass
+
+class ErrorUserNotRegistered(Exception):
     pass
