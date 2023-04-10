@@ -1,17 +1,24 @@
 import discord
-from discord.ext import tasks, commands
 
 from loguru import logger
 
 from app.bot.cogs.round_timer import RoundTimer
-import app.bot.constants.choices as choice
-from app.bot.constants.strings import RESP_RULES, LIST_COMMANDS, SEPARATOR, INTRO_SEPARATOR
+import app.bot.constants.choices as choices
+from app.bot.constants.strings import (RESP_RULES,
+                                       LIST_COMMANDS,
+                                       REGISTER_SUCCESS_MSG,
+                                       INTRO_MSG,
+                                       BET_SUCCESS_MSG,
+                                       MY_BETS_SUCCESS_MSG,
+                                       MY_BETS_FAIL_MSG,
+                                       MY_COINS_SUCCESS_MSG)
 import app.bot.service as service
 from app.common.exceptions import UserError
 from app.config import TOKEN, GAME_NAME
 
 global bot
 bot = discord.Bot()
+bet = bot.create_group("bet", "Place a bet")
 
 def launch_bot():
     logger.info("Bot is running!")
@@ -26,54 +33,41 @@ class MenuView(discord.ui.View):
             discord.SelectOption(
                 label="Register",
                 description=f"Gives you 100 coins and adds you to the player ranks",
-                value=choice.REGISTER
+                value=choices.REGISTER
             ),
             discord.SelectOption(
                 label="Read rules",
                 description="Lists the game rules",
-                value=choice.RULES
+                value=choices.RULES
             ),
             discord.SelectOption(
                 label="List commands",
                 description=f"Lists all commands usable in {GAME_NAME}",
-                value=choice.COMMANDS
+                value=choices.COMMANDS
             )
         ]
     )
     async def select_callback(self, select, interaction : discord.interactions.Interaction):
         user = interaction.user
         user_id = user.id
-        if select.values[0] == choice.REGISTER:
+        if select.values[0] == choices.REGISTER:
             try:
                 service.add_user(user)
-                await interaction.response.send_message(
-                    f"Welcome to the fold, <@{user_id}>!\nYou've been awarded 100 coins.\n"
-                    "Try `/bet` command in order to place a bet.")
+                await interaction.response.send_message(REGISTER_SUCCESS_MSG.format(user_id=user_id))
             except UserError as ue:
                 logger.warning(ue)
-                await interaction.response.send_message(ue)
-        elif select.values[0] == choice.RULES:
+                await interaction.response.send_message(str(ue))
+        elif select.values[0] == choices.RULES:
             await interaction.response.send_message(RESP_RULES)
-        elif select.values[0] == choice.COMMANDS:
+        elif select.values[0] == choices.COMMANDS:
             await interaction.response.send_message(LIST_COMMANDS)
 
-@bot.command(guild_ids=["1093221126504710305"])
+@bot.command()
 async def roulette(ctx: discord.ApplicationContext):
-    await ctx.respond(
-        f"{INTRO_SEPARATOR}\nWelcome to `{GAME_NAME}`! What would you like to do?\n{INTRO_SEPARATOR}"
-    )
+    await ctx.respond(INTRO_MSG)
     await ctx.send(view=MenuView())
 
-async def determine_bet_selection(ctx: discord.AutocompleteContext):
-    color_or_number = ctx.options['color_or_number']
-    if color_or_number == "color":
-        return ["red", "black"]
-    else:
-        return [str(i) for i in range(0,37)]
-
-bet = bot.create_group("bet", "Place a bet")
-
-@bet.command(guild_ids=["1093221126504710305"])
+@bet.command()
 async def color(
     ctx : discord.ApplicationContext,
     value : discord.Option(
@@ -85,13 +79,13 @@ async def color(
 ):
     try:
         service.add_bet(ctx.user, value, bet_amount)
-        await ctx.respond(f"Bet accepted: :{value}_circle:**{value}** for {bet_amount} :coin:")
+        await ctx.respond(BET_SUCCESS_MSG.format(value=value, bet_amount=bet_amount))
         RoundTimer(ctx)
     except UserError as ue:
         logger.error(ue)
         await ctx.respond(ue)
 
-@bet.command(guild_ids=["1093221126504710305"])
+@bet.command()
 async def number(
     ctx : discord.ApplicationContext,
     value : discord.Option(str, description="Type in a number between 0 and 37"),
@@ -99,30 +93,29 @@ async def number(
 ):
     try:
         service.add_bet(ctx.user, value, bet_amount)
-        await ctx.respond(f"{SEPARATOR}\nBet accepted: --**{value}**-- for {bet_amount} :coin:\n{SEPARATOR}")
+        await ctx.respond(BET_SUCCESS_MSG.format(value=value, bet_amount=bet_amount))
         RoundTimer(ctx)
     except UserError as ue:
         logger.error(ue)
         await ctx.respond(ue)
 
-@bot.command(guild_ids=["1093221126504710305"])
+@bot.command()
 async def my_bets(ctx: discord.ApplicationContext):
     bets = service.fetch_active_bets_by_user(ctx.user)
+    user_id = ctx.user.id
     if len(bets) > 0:
-        await ctx.respond(
-            f"<@{ctx.user.id}>, your bets are:\n" +
-            "\n".join([f"{bet[1]} coins on {bet[2] if bet[2] else bet[3]}" for bet in bets])
-        )
+        # bet[1] - amount; bet[2] - number; bet[3] - color
+        bets_list_str = [f"{bet[1]} coins on {bet[2] if bet[2] else bet[3]}" for bet in bets]
+        await ctx.respond(MY_BETS_SUCCESS_MSG.format(user_id=user_id,
+                                                     bets="\n".join(bets_list_str)))
     else:
-        await ctx.respond(f"<@{ctx.user.id}>, you have no active bets")
+        await ctx.respond(MY_BETS_FAIL_MSG.format(user_id=user_id))
 
-@bot.command(guild_ids=["1093221126504710305"])
+@bot.command()
 async def my_coins(ctx: discord.ApplicationContext):
     try:
         coins = service.get_coins(ctx.user)
-        await ctx.respond(
-            f"User <@{ctx.user.id}> has a balance of {coins} :coin:"
-        )
+        await ctx.respond(MY_COINS_SUCCESS_MSG.format(user_id=ctx.user.id, coins=coins))
     except UserError as ue:
         logger.warning(ue)
         await ctx.respond(ue)

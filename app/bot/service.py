@@ -2,6 +2,15 @@ from loguru import logger
 
 from collections import defaultdict
 
+from app.bot.constants.strings import (REGISTER_FAIL_MSG,
+                                       USER_NOT_REGISTERED_MSG,
+                                       BET_FAIL_NO_USER_MSG,
+                                       BET_FAIL_INVALID_NUMBER_MSG,
+                                       BET_FAIL_INVALID_COLOR_MSG,
+                                       BET_FAIL_INVALID_AMOUNT_MSG,
+                                       BET_FAIL_0_BALANCE_MSG,
+                                       BET_FAIL_INSUFFICIENT_BALANCE_MSG,
+                                       BET_FAIL_NOT_REGISTERED_MSG)
 from app.common.exceptions import UserError
 from app.data.db import SQLiteClient
 
@@ -17,20 +26,20 @@ def add_user(user):
     if user_data[1] < 1:
         db.update_user_coins(user_id, 100)
     else:
-        raise UserError(f"<@{user.id}> is already registered!\n"
-                        "Try `/bet` command in order to place a bet.")
+        raise UserError(REGISTER_FAIL_MSG.format(user_id=user_id))
 
 def get_coins(user):
     user_id = user.id
     res = db.fetch_user_by_id(user_id)
     if res is None:
-        raise UserError(f"User <@{user_id}> is not registered")
+        raise UserError(USER_NOT_REGISTERED_MSG.format(user_id=user_id))
     return res[1]
 
 def add_bet(user, bet_value, bet_amount):
     user_coins = get_coins(user)
+    user_id = user.id
     if user_coins is None:
-        raise UserError("User must register before placing a bet")
+        raise UserError(BET_FAIL_NO_USER_MSG)
     
     if bet_value.isnumeric():
         bet_num = int(bet_value)
@@ -40,31 +49,36 @@ def add_bet(user, bet_value, bet_amount):
         bet_clr = bet_value
 
     if bet_num and bet_num not in range(0, 37):
-        raise UserError(f"<@{user.id}>, you can only bet on numbers between 0 and 36!")
+        raise UserError(BET_FAIL_INVALID_NUMBER_MSG.format(user_id=user_id))
+
+    if bet_clr and bet_clr not in ["red", "black"]:
+        raise UserError(BET_FAIL_INVALID_COLOR_MSG.format(user_id=user_id))
+
+    if bet_amount < 1:
+        raise UserError(BET_FAIL_INVALID_AMOUNT_MSG.format(user_id=user_id))
 
     if user_coins == 0:
-        raise UserError(f"<@{user.id}>, you've run out of coins!\n"
-                                 "You can register again to get a new batch of 100.")
+        raise UserError(BET_FAIL_0_BALANCE_MSG.format(user_id=user_id))
 
     new_balance = user_coins - bet_amount
     if new_balance < 0:
-        raise UserError(f"User <@{user.id}> has only {user_coins} coins, while "
-                                       f"trying to place a bet of {bet_amount}.\n"
-                                       "Adjust the amount and try again.")
+        raise UserError(BET_FAIL_INSUFFICIENT_BALANCE_MSG.format(user_id=user_id,
+                                                                 user_coins=user_coins,
+                                                                 bet_amount=bet_amount))
     data = {
-        "user_id": user.id,
+        "user_id": user_id,
         "amount": bet_amount,
         "number": bet_num,
         "color": bet_clr,
     }
     db.add_bet(data)
-    db.update_user_coins(user.id, new_balance)
+    db.update_user_coins(user_id, new_balance)
     return new_balance
 
 def fetch_active_bets_by_user(user):
     bets = db.fetch_active_bets_by_user(user.id)
     if bets is None:
-        raise UserError("User must register before placing a bet")
+        raise UserError(BET_FAIL_NOT_REGISTERED_MSG)
     return bets
 
 def determine_winners(roll_result):

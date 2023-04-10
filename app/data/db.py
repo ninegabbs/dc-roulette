@@ -22,7 +22,7 @@ CONN = sqlite3.connect(DB_NAME)
 def cleanup():
     if CONN:
         CONN.close()
-        logger.info("DB closed")
+        # logger.info("DB closed")
 
 atexit.register(cleanup)
 
