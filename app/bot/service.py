@@ -4,7 +4,6 @@ from collections import defaultdict
 
 from app.bot.constants.strings import (REGISTER_FAIL_MSG,
                                        USER_NOT_REGISTERED_MSG,
-                                       BET_FAIL_NO_USER_MSG,
                                        BET_FAIL_INVALID_NUMBER_MSG,
                                        BET_FAIL_INVALID_COLOR_MSG,
                                        BET_FAIL_INVALID_AMOUNT_MSG,
@@ -38,8 +37,6 @@ def get_coins(user):
 def add_bet(user, bet_value, bet_amount):
     user_coins = get_coins(user)
     user_id = user.id
-    if user_coins is None:
-        raise UserError(BET_FAIL_NO_USER_MSG)
     
     if bet_value.isnumeric():
         bet_num = int(bet_value)
@@ -76,10 +73,7 @@ def add_bet(user, bet_value, bet_amount):
     return new_balance
 
 def fetch_active_bets_by_user(user):
-    bets = db.fetch_active_bets_by_user(user.id)
-    if bets is None:
-        raise UserError(BET_FAIL_NOT_REGISTERED_MSG)
-    return bets
+    return db.fetch_active_bets_by_user(user.id)
 
 def determine_winners(roll_result):
     bets = db.fetch_active_bets_all()

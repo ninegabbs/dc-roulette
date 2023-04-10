@@ -110,3 +110,7 @@ class SQLiteClient():
         self.db.execute(UPDATE_BETS_DEACTIVATE_ALL, {"updated_at": updated_at})
         CONN.commit()
         logger.debug("All active bets were deactivated")
+
+    def custom_query(self, query, data):
+        self.db.execute(query, data)
+        CONN.commit()

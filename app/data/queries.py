@@ -42,3 +42,6 @@ UPDATE_BETS_DEACTIVATE_ALL = """
     SET isActive = 0, updatedAt = :updated_at
     WHERE isActive = 1
 """
+
+WIPE_USERS = "DELETE FROM users"
+WIPE_BETS = "DELETE FROM bets"

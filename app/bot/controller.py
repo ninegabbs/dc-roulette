@@ -8,7 +8,8 @@ from app.bot.constants.strings import (RESP_RULES,
                                        LIST_COMMANDS,
                                        REGISTER_SUCCESS_MSG,
                                        INTRO_MSG,
-                                       BET_SUCCESS_MSG,
+                                       BET_SUCCESS_COLOR_MSG,
+                                       BET_SUCCESS_NUMBER_MSG,
                                        MY_BETS_SUCCESS_MSG,
                                        MY_BETS_FAIL_MSG,
                                        MY_COINS_SUCCESS_MSG)
@@ -55,7 +56,7 @@ class MenuView(discord.ui.View):
                 service.add_user(user)
                 await interaction.response.send_message(REGISTER_SUCCESS_MSG.format(user_id=user_id))
             except UserError as ue:
-                logger.warning(ue)
+                logger.error(ue)
                 await interaction.response.send_message(str(ue))
         elif select.values[0] == choices.RULES:
             await interaction.response.send_message(RESP_RULES)
@@ -79,25 +80,25 @@ async def color(
 ):
     try:
         service.add_bet(ctx.user, value, bet_amount)
-        await ctx.respond(BET_SUCCESS_MSG.format(value=value, bet_amount=bet_amount))
+        await ctx.respond(BET_SUCCESS_COLOR_MSG.format(value=value, bet_amount=bet_amount))
         RoundTimer(ctx)
     except UserError as ue:
         logger.error(ue)
-        await ctx.respond(ue)
+        await ctx.respond(str(ue))
 
 @bet.command()
 async def number(
     ctx : discord.ApplicationContext,
-    value : discord.Option(str, description="Type in a number between 0 and 37"),
+    value : discord.Option(str, description="Type in a number between 0 and 36"),
     bet_amount: discord.Option(int, description="Input the amount of coins you're betting")
 ):
     try:
         service.add_bet(ctx.user, value, bet_amount)
-        await ctx.respond(BET_SUCCESS_MSG.format(value=value, bet_amount=bet_amount))
+        await ctx.respond(BET_SUCCESS_NUMBER_MSG.format(value=value, bet_amount=bet_amount))
         RoundTimer(ctx)
     except UserError as ue:
         logger.error(ue)
-        await ctx.respond(ue)
+        await ctx.respond(str(ue))
 
 @bot.command()
 async def my_bets(ctx: discord.ApplicationContext):
@@ -117,5 +118,5 @@ async def my_coins(ctx: discord.ApplicationContext):
         coins = service.get_coins(ctx.user)
         await ctx.respond(MY_COINS_SUCCESS_MSG.format(user_id=ctx.user.id, coins=coins))
     except UserError as ue:
-        logger.warning(ue)
-        await ctx.respond(ue)
+        logger.error(ue)
+        await ctx.respond(str(ue))

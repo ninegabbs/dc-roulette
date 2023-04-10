@@ -2,15 +2,16 @@ from app.bot.constants.game_values import RED_NUMBERS_STR, BLACK_NUMBERS_STR
 from app.config import GAME_NAME
 
 RESP_RULES = ("The game rules are as follows:\n"
+    "Register for the game by selecting 'Register' in the dropdown menu.\n"
     "Players can place bets on a specific number (0-36) or color (red or black).\n"
     f"Red roulette numbers are: {RED_NUMBERS_STR}\n"
     f"Black roulette numbers are: {BLACK_NUMBERS_STR}\n"
     "0 is green.\n"
-    "- A spin happens everytime a player places a bet.\n"
+    "- A spin happens once one of the players places a bet.\n"
     "- Each roulette spin has a random outcome, determining the winning number and color.\n"
     "- For correctly guessed color winnings are 2 times the bet sum\n"
-    "- For correctly guessed number, winnings are 36 times the bet sum"
-    "- If you run out coins, you can `!enter` once again")
+    "- For correctly guessed number, winnings are 36 times the bet sum\n"
+    "- If you run out coins, you can register once again")
 
 LIST_COMMANDS = ("`/roulette` - Brings up the starting menu\n"
     "`/my_coins` - Shows your coin balance\n"
@@ -27,14 +28,16 @@ ROUND_SEPARATOR = f":game_die:{SEPARATOR}:game_die:"
 INTRO_SEPARATOR = f":palm_tree:{SEPARATOR}:palm_tree:"
 
 REGISTER_SUCCESS_MSG = "Welcome to the fold, <@{user_id}>!\nYou've been awarded 100 coins.\n" +\
-    "Try `/bet` command in order to place a bet."
+    "Try `/bet color` or `/bet number` commands in order to place a bet."
 
 REGISTER_FAIL_MSG = "<@{user_id}> is already registered!\nTry `/bet` commands in order to place a bet."
 
 INTRO_MSG = f"{INTRO_SEPARATOR}\nWelcome to `{GAME_NAME}`! What would you like to do?\n{INTRO_SEPARATOR}"
 
-BET_SUCCESS_MSG = SEPARATOR + "Bet accepted: :{value}_circle:**{value}** for {bet_amount} :coin:" +\
+BET_SUCCESS_COLOR_MSG = SEPARATOR + "\nBet accepted: :{value}_circle:**{value}** for {bet_amount} :coin:\n" +\
     SEPARATOR
+
+BET_SUCCESS_NUMBER_MSG = SEPARATOR + "\nBet accepted: number --**{value}**-- for {bet_amount} :coin:\n" + SEPARATOR
 
 MY_BETS_SUCCESS_MSG = "<@{user_id}>, your bets are:\n{bets}"
 
@@ -44,16 +47,14 @@ MY_COINS_SUCCESS_MSG = "User <@{user_id}> has a balance of {coins} :coin:"
 
 USER_NOT_REGISTERED_MSG = "User <@{user_id}> is not registered"
 
-BET_FAIL_NO_USER_MSG = "User must register before placing a bet"
-
 BET_FAIL_INVALID_NUMBER_MSG = "<@{user_id}>, you can only bet on numbers between 0 and 36!"
 
 BET_FAIL_INVALID_COLOR_MSG = "<@{user_id}>, you can only bet on colors red and black!"
 
-BET_FAIL_INVALID_AMOUNT_MSG = "<@{user.id}>, invalid bet amount!"
+BET_FAIL_INVALID_AMOUNT_MSG = "<@{user_id}>, invalid bet amount!"
 
 BET_FAIL_0_BALANCE_MSG = "<@{user_id}>, you've run out of coins!\n" +\
-    "You can register again to get a new batch of 100."
+    "You can register again from the `/roulette` menu to get a new batch of 100."
 
 BET_FAIL_INSUFFICIENT_BALANCE_MSG = "User <@{user_id}> has only {user_coins} coins, while " +\
     "trying to place a bet of {bet_amount}.\nAdjust the amount and try again."
