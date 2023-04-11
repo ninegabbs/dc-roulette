@@ -1,5 +1,3 @@
-NEEDS TO BE CLEAR AND CONCISE!!!
-
 # DC-Roulette
 
 ## Introduction
