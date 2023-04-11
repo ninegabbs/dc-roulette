@@ -26,7 +26,7 @@ class RoundTimer(commands.Cog):
     def __init__(self, ctx):
         if not hasattr(self, "instantiated"):
             self.index = round_duration
-            self.warning_time_s = 10
+            self.warning_time_s = 30
             self.ctx = ctx
             self.timer.start()
             self.instantiated = True
