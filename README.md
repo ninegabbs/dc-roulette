@@ -22,9 +22,13 @@ Invite link: https://discord.com/api/oauth2/authorize?client_id=1093214162605318
     - Click on "Discord API" link.
     - Click on "make an app" link in the description.
     - In the Developer portal, in "Applications" menu, click "New Application" button.
-    - Name the bot and "Save changes".
-    - Go to the "Bot" menu and generate a token using "Add Bot". Copy the token, store it somewhere safe.
-    - Click on "OAuth2", "URL Generator", check the box "bot", check the permissions "Send messages" and "Create public threads", and then click on "Copy". This will be the invite link for the bot.
+    - Name your bot.
+    - Go to the "Bot" menu, click "Add Bot".
+    - Click on "OAuth2", "General"
+    - Under "Authorization method" dropdown, select "In-app Authorization"
+    - Then check the box "bot", and under it check boxes "Send Messages", "Create Public Threads". Save the changes.
+    - Under "OAuth2", click on "URL Generator", check the box "bot", check the permissions "Send messages" and "Create public threads", and then click on "Copy". This will be the invite link for the bot.
+    - Go back to "Bot" section, click "Reset token", then copy it, store it somewhere safe.
     - Follow **How to invite the Bot to Your Server** guide with this invite link.
 - Have Python 3.10.11 installed
 - After cloning this repository, go to the project root and run `pip install -r requirements.txt` to install Python dependencies
