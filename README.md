@@ -19,15 +19,13 @@ Invite link: https://discord.com/api/oauth2/authorize?client_id=1093214162605318
 ## How to Run the Bot by Yourself
 - Setup a new bot on Discord:
     - In Discord settings, go to "Advanced" and turn on "Developer mode".
-    - Click on "Discord API".
+    - Click on "Discord API" link.
     - Click on "make an app" link in the description.
-    - In the Developer portal, click on "Applications". Log in again and then, back in the    - "Applications" menu, click on "New Application".
-    - Name the bot and then click "Create".
-    - Go to the "Bot" menu and generate a token using "Add Bot".
-    - Program your bot using the bot token and save the file.
-    - Define other details for your bot under "General Information".
-    - Click on "OAuth2", "URL Generator", check the box "bot", check the permissions "Send messages" and "Create public threads", and then click on "Copy".
-    - Select your server to add your bot to it.
+    - In the Developer portal, in "Applications" menu, click "New Application" button.
+    - Name the bot and "Save changes".
+    - Go to the "Bot" menu and generate a token using "Add Bot". Copy the token, store it somewhere safe.
+    - Click on "OAuth2", "URL Generator", check the box "bot", check the permissions "Send messages" and "Create public threads", and then click on "Copy". This will be the invite link for the bot.
+    - Follow **How to invite the Bot to Your Server** guide with this invite link.
 - Have Python 3.10.11 installed
 - After cloning this repository, go to the project root and run `pip install -r requirements.txt` to install Python dependencies
 - Setup the app environment:
